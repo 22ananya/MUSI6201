@@ -222,7 +222,7 @@ def run_evaluation_v2(complete_path_to_data_folder):
         # read text file columns 1 and 3 into numpy array - columns 1 and 3 contain start time and f0 values
         text_data = np.loadtxt(text_files[i], usecols=(0,2)) # load text file
         # call pitch tracking function
-        f0_vec = track_pitch_fftmax(x,blockSize,hopSize,fs)
+        f0_vec = track_pitch_hps(x,blockSize,hopSize,fs)
         # keep only same number of values in text file as in f0_vec
         text_data = text_data[0:len(f0_vec),:]
 
@@ -245,6 +245,8 @@ def run_evaluation_v2(complete_path_to_data_folder):
         cent_error, pfp, pfn = eval_pitchtrack_v2(f0_vec, text_data[:,1])
         # print cent error
         print('Cent error for file ' + str(i+1) + ' is ' + str(cent_error) + ' cents.')
+
+def track_pitch(x, blockSize, hopSize, fs, method, voicingThres):
 
 
 if __name__ == '__main__':
