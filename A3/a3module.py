@@ -14,6 +14,7 @@ sys.path.append(path + '/A1 Pitch Tracking')
 sys.path.append(path + '/A2')
 from A1_helper_module import *
 from a2solution import *
+from convert_freq2midi import *
 
 ## Part A
 # A.1 - Create a spectrogram function compute_spectrogram(xb, fs) which computes the magbitude spectrogram of a given block of audio data xb sampled at a rate fs.
@@ -124,10 +125,19 @@ def eval_voiced_fn(estimation, annotation):
     return pfn
 
 # modified eval_pitchtrack function from Assignment 1
-import convert_freq2midi
 def eval_pitchtrack_v2(estimate_in_hz, groundtruth_in_hz):
     estimate_in_hz = np.array(estimate_in_hz) # make sure inputs are numpy arrays
     groundtruth_in_hz = np.array(groundtruth_in_hz) # make sure inputs are numpy arrays
+
+    pfp = eval_voiced_fp(estimate_in_hz, groundtruth_in_hz)
+    pfn = eval_voiced_fn(estimate_in_hz, groundtruth_in_hz)
+
+    # remove zero frequency values wherever groundtruth is zero = those values should be ignored for the estimate too
+    z_inds = np.where(groundtruth_in_hz!=0)
+    groundtruth_in_hz = groundtruth_in_hz[z_inds]
+    estimate_in_hz = estimate_in_hz[z_inds]
+    estimate_in_hz[estimate_in_hz==0] = 440 # to get a non-infinited or nan value
+
     estimate_pitch_midi = convert_freq2midi(estimate_in_hz) # convert estimate to MIDI
     groundtruth_pitch_midi = convert_freq2midi(groundtruth_in_hz) # convert ground truth to MIDI
 
@@ -135,9 +145,6 @@ def eval_pitchtrack_v2(estimate_in_hz, groundtruth_in_hz):
     p_err = estimate_pitch_midi - groundtruth_pitch_midi  # error in pitch  - MIDI
     err_cent = 100*p_err
     errCentRms = np.sqrt(np.sum(np.square(err_cent))/np.size(err_cent))
-
-    pfp = eval_voiced_fp(estimate_in_hz, groundtruth_in_hz)
-    pfn = eval_voiced_fn(estimate_in_hz, groundtruth_in_hz)
 
     return errCentRms, pfp, pfn
 
@@ -159,7 +166,7 @@ def executeassign3():
     plt.title('Test Signal')
     plt.show(block=False)
 
-    blockSize = 1024
+    blockSize = 2048
     hopSize = 512
     f0_fft = track_pitch_fftmax(x, blockSize, hopSize, fs)
     f0_hps = track_pitch_hps(x, blockSize, hopSize, fs)
@@ -190,6 +197,59 @@ def executeassign3():
     plt.legend('FFT','HPS')
     plt.show()
 
+def run_evaluation_v2(complete_path_to_data_folder):
+    # declare variables
+    blockSize = 1024
+    hopSize = 512
+    # loads pairs of audio and text files from the same directory
+    audio_files = [] # initialize list of audio files
+    text_files = [] # initialize list of text files
+    for file in os.listdir(complete_path_to_data_folder): # iterate over all files in the directory
+        if file.endswith('.wav'): # if the file is an audio file
+            audio_files.append(os.path.join(complete_path_to_data_folder, file)) # add the file to the list of audio files
+            text_files.append(os.path.join(complete_path_to_data_folder, file.replace('.wav','.f0.Corrected.txt'))) # add the corresponding text file to the list of text files
+
+
+    # loop over audio and corresponding text files, perform cent error analyses on each file and report deviation from ground truth
+    audio_data = [] # initialize list of audio data
+    text_data = [] # initialize list of text data
+    cent_error = [] # initialize list of cent errors
+    for i in range(len(audio_files)): # iterate over all audio files
+        print('Processing file ' + str(i+1) + ' of ' + str(len(audio_files)) + '...') # print progress
+        fs, x = wav.read(audio_files[i]) # load audio file
+
+
+        # read text file columns 1 and 3 into numpy array - columns 1 and 3 contain start time and f0 values
+        text_data = np.loadtxt(text_files[i], usecols=(0,2)) # load text file
+        # call pitch tracking function
+        f0_vec = track_pitch_fftmax(x,blockSize,hopSize,fs)
+        # keep only same number of values in text file as in f0_vec
+        text_data = text_data[0:len(f0_vec),:]
+
+        # exclude all values where text file f0 is 0
+        #f0_vec = f0_vec[text_data[:,1] != 0]
+        
+
+        # plot calculated f0 vector and text file f0 vector for comparison
+        # plt.figure(figsize=(10,4))
+        # plt.plot(timeInSec, f0_vec, label='Calculated f0')
+        # plt.plot(text_data[:,0], text_data[:,1], label='Text file f0')
+        # plt.xlabel('Time (sec)')
+        # plt.ylabel('Frequency (Hz)')
+        # plt.title('Pitch Tracking')
+        # plt.legend()
+        # plt.show()
+
+
+        # call cent error function
+        cent_error, pfp, pfn = eval_pitchtrack_v2(f0_vec, text_data[:,1])
+        # print cent error
+        print('Cent error for file ' + str(i+1) + ' is ' + str(cent_error) + ' cents.')
+
 
 if __name__ == '__main__':
     executeassign3()
+
+    # execute pitch tracker on trainData dataset
+    mypath = r'/Users/ananyabhardwaj/Downloads/trainData' # update as required for your system
+    run_evaluation_v2(mypath)
