@@ -64,7 +64,6 @@ def estimate_tuning_freq(x, blockSize, hopSize, fs):
     # return the tuning frequency
     return tuningFreq
 
-
 if __name__ == '__main__':
     # execute pitch tracker on trainData dataset
     audiopath = r'/Users/ananyabhardwaj/Downloads/MUSI_6201/music_speech data/music_wav/classical2.wav' # update as required for your system
