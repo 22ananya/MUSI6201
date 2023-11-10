@@ -246,7 +246,7 @@ def run_evaluation_v2(complete_path_to_data_folder):
         # print cent error
         print('Cent error for file ' + str(i+1) + ' is ' + str(cent_error) + ' cents.')
 
-def track_pitch(x, blockSize, hopSize, fs, method, voicingThres):
+#def track_pitch(x, blockSize, hopSize, fs, method, voicingThres):
 
 
 if __name__ == '__main__':
