@@ -5,6 +5,7 @@ import numpy as np
 import scipy as sp
 from scipy.io import wavfile as wav
 import matplotlib.pyplot as plt
+from scipy.signal import spectrogram
 import os
 import math
 
@@ -126,7 +127,27 @@ def estimate_tuning_freq(x, blockSize, hopSize, fs):
 
 
 def extract_pitch_chroma(X, fs, tfInHz):
-    return np.random.rand(12, X.shape[1])
+
+    semitone_freqs = 2 ** (np.arange(36) / 12) * 130.81  # C3 to B5
+
+    deviation_cents = 1200 * np.log2(X / semitone_freqs[tfInHz])
+
+    adjusted_semitone_freqs = semitone_freqs * 2 ** (deviation_cents / 1200)
+
+    pitchChroma = np.zeros((12, X.shape[1]))
+
+    for block in range(X.shape[1]):
+        mag_spectrum = X[:, block]
+
+        interpolated_spectrum = np.interp(adjusted_semitone_freqs, semitone_freqs, mag_spectrum)
+
+        for pitch_class in range(12):
+            pitchChroma[pitch_class, block] = np.sum(interpolated_spectrum[pitch_class::12])
+
+    # Normalize each pitch chroma vector to a length of 1
+    pitchChroma /= np.linalg.norm(pitchChroma, axis=0)
+
+    return pitchChroma
 
 
 def detect_key(x, blockSize, hopSize, fs, bTune):
