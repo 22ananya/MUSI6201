@@ -5,7 +5,6 @@ import numpy as np
 import scipy as sp
 from scipy.io import wavfile as wav
 import matplotlib.pyplot as plt
-from scipy.signal import spectrogram
 import os
 import math
 
@@ -93,7 +92,7 @@ def get_spectral_peaks(X):
 def estimate_tuning_freq(x, blockSize, hopSize, fs):
     # block signal
     xb, timeInSec = block_audio(
-        x, block_size, hop_size, fs
+        x, blockSize, hopSize, fs
     )  # imported from A1 helper module
     X, fInHz = compute_spectrogram(xb, fs)  # imported from A3 module
 
@@ -112,12 +111,12 @@ def estimate_tuning_freq(x, blockSize, hopSize, fs):
     # find the bin with the highest count
     maxbin = np.argmax(hist)
     # plot the histogram
-    plt.figure()
-    plt.plot(bin_edges[1:], hist)
-    plt.xlabel("Deviation (cents)")
-    plt.ylabel("Count")
-    plt.title("Histogram of Deviation")
-    plt.show()
+    # plt.figure()
+    # plt.plot(bin_edges[1:], hist)
+    # plt.xlabel("Deviation (cents)")
+    # plt.ylabel("Count")
+    # plt.title("Histogram of Deviation")
+    # plt.show()
     # return the bin with the highest count
     tuningFreq = bin_edges[maxbin]
     # convert the tuning frequency to Hz
@@ -127,26 +126,25 @@ def estimate_tuning_freq(x, blockSize, hopSize, fs):
 
 
 def extract_pitch_chroma(X, fs, tfInHz):
-
-    semitone_freqs = 2 ** (np.arange(36) / 12) * 130.81  # C3 to B5
-
-    deviation_cents = 1200 * np.log2(X / semitone_freqs[tfInHz])
-
-    adjusted_semitone_freqs = semitone_freqs * 2 ** (deviation_cents / 1200)
-
-    pitchChroma = np.zeros((12, X.shape[1]))
-
-    for block in range(X.shape[1]):
-        mag_spectrum = X[:, block]
-
-        interpolated_spectrum = np.interp(adjusted_semitone_freqs, semitone_freqs, mag_spectrum)
-
-        for pitch_class in range(12):
-            pitchChroma[pitch_class, block] = np.sum(interpolated_spectrum[pitch_class::12])
-
-    # Normalize each pitch chroma vector to a length of 1
-    pitchChroma /= np.linalg.norm(pitchChroma, axis=0)
-
+    n_bins, numBlocks = X.shape
+    pitchChroma = np.zeros((12, numBlocks))
+    # frequency range from C3 to B5
+    lowerBound = 130.81
+    upperBound = 987.77
+    frequencies = np.linspace(0, fs / 2, n_bins)
+    for i in range(numBlocks):
+        chroma = np.zeros(12)
+        for j in range(1, n_bins):
+            if frequencies[j] < lowerBound:
+                continue
+            if frequencies[j] > upperBound:
+                break
+            pitch_class = int(np.round(12 * np.log2(frequencies[j] / tfInHz))) % 12
+            chroma[pitch_class] += X[j, i]
+        norm = np.linalg.norm(chroma, ord=2)
+        if norm > 0:
+            chroma /= norm
+        pitchChroma[:, i] = chroma
     return pitchChroma
 
 
@@ -161,7 +159,7 @@ def detect_key(x, blockSize, hopSize, fs, bTune):
     t_major = t_pc[0] / np.linalg.norm(t_pc[0])
     t_minor = t_pc[1] / np.linalg.norm(t_pc[1])
 
-    xb, timeInSec = block_audio(x, block_size, hop_size, fs)
+    xb, timeInSec = block_audio(x, blockSize, hopSize, fs)
     X, fInHz = compute_spectrogram(xb, fs)
 
     if bTune:
@@ -172,6 +170,8 @@ def detect_key(x, blockSize, hopSize, fs, bTune):
     pitchChroma = extract_pitch_chroma(X, fs, tfInHz)
 
     avgChroma = np.mean(pitchChroma, axis=1)
+    # normalize
+    avgChroma /= np.linalg.norm(avgChroma)
 
     distance_major = [
         np.linalg.norm(avgChroma - np.roll(t_major, i)) for i in range(12)
@@ -191,23 +191,65 @@ def detect_key(x, blockSize, hopSize, fs, bTune):
     return key
 
 
+def eval_tfe(pathToAudio, pathToGT):
+    block_size = 4096
+    hop_size = 2048
+    deviation_cent = []
+    for audio in os.listdir(pathToAudio):
+        fs, x = wav.read(os.path.join(pathToAudio, audio))
+        # read txt file
+        with open(os.path.join(pathToGT, audio[:-4] + ".txt")) as f:
+            tuningFreqGT = float(f.read())
+        tuningFreq = estimate_tuning_freq(x, block_size, hop_size, fs)
+        deviation_cent.append(1200 * np.log2(tuningFreq / tuningFreqGT))
+    deviation_cent = np.array(deviation_cent)
+    average_deviation = np.mean(deviation_cent)
+
+    print("Average deviation (cents): ", average_deviation, "cents")
+    return average_deviation
+
+
+def eval_key_detection(pathToAudio, pathToGT):
+    block_size = 4096
+    hop_size = 2048
+    accuracy_tuned = 0
+    accuracy = 0
+    for audio in os.listdir(pathToAudio):
+        fs, x = wav.read(os.path.join(pathToAudio, audio))
+        # read txt file
+        with open(os.path.join(pathToGT, audio[:-4] + ".txt")) as f:
+            keyGT = int(f.read())
+        key_tuned = detect_key(x, block_size, hop_size, fs, bTune=True)
+        key = detect_key(x, block_size, hop_size, fs, bTune=False)
+        if key_tuned == keyGT:
+            accuracy_tuned += 1
+        if key == keyGT:
+            accuracy += 1
+        # # print file name
+        # print(audio)
+        # print("Estimated key (tuned): ", key_tuned)
+        # print("Estimated key: ", key)
+        # print("Ground truth key: ", keyGT)
+        # print("")
+    accuracy_tuned /= len(os.listdir(pathToAudio))
+    accuracy /= len(os.listdir(pathToAudio))
+    print("Accuracy (tuned): ", accuracy_tuned)
+    print("Accuracy: ", accuracy)
+    return np.array([accuracy_tuned, accuracy])
+
+
+def valuate(pathToAudioKey, pathToGTKey, pathToAudioTf, pathToGTTf):
+    avg_accuracy = eval_key_detection(pathToAudioKey, pathToGTKey)
+    avg_deviationInCent = eval_tfe(pathToAudioTf, pathToGTTf)
+    return avg_accuracy, avg_deviationInCent
+
+
 if __name__ == "__main__":
-    # execute pitch tracker on trainData dataset
-    audiopath = r"/Users/ananyabhardwaj/Downloads/MUSI_6201/music_speech data/music_wav/classical2.wav"  # update as required for your system
-
-    # Test the function
-    # load the audio file
-    fs, x = wav.read(audiopath)
-    # t = np.arange(0,10, 1/fs)
-    # x = np.sin(2*np.pi*440*t)
-    # set the block and hop sizes
-    block_size = 2048
-    hop_size = 1024
-    # estimate the tuning frequency
-    tuningFreq = estimate_tuning_freq(x, block_size, hop_size, fs)
-    # print the tuning frequency
-    print("Estimated tuning frequency: ", tuningFreq, "Hz")
-
-    # Test the function
-    key = detect_key(x, block_size, hop_size, fs, bTune=True)
-    print(key)
+    avg_accuracy, avg_deviationInCent = valuate(
+        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/key_eval/audio",
+        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/key_eval/GT",
+        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/tuning_eval/audio",
+        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/tuning_eval/GT",
+    )
+    print("Average accuracy: ", avg_accuracy)
+    print("Average deviation (cents): ", avg_deviationInCent)
