@@ -234,8 +234,10 @@ def eval_key_detection(pathToAudio, pathToGT):
         # print("")
     accuracy_tuned /= len(os.listdir(pathToAudio))
     accuracy /= len(os.listdir(pathToAudio))
-    print("Accuracy (tuned): ", accuracy_tuned)
-    print("Accuracy: ", accuracy)
+    print(
+        "Accuracy for key detection with tuning frequency correction: ", accuracy_tuned
+    )
+    print("Accuracy for key detection without tuning frequency correction: ", accuracy)
     return np.array([accuracy_tuned, accuracy])
 
 
@@ -246,11 +248,15 @@ def valuate(pathToAudioKey, pathToGTKey, pathToAudioTf, pathToGTTf):
 
 
 if __name__ == "__main__":
+    sample_path = r"key_tf/"
     avg_accuracy, avg_deviationInCent = valuate(
-        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/key_eval/audio",
-        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/key_eval/GT",
-        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/tuning_eval/audio",
-        r"/Users/ljr/Desktop/homework/MUSI-6201-Assignments/key_tf/tuning_eval/GT",
+        os.path.join(sample_path, "key_eval/audio"),
+        os.path.join(sample_path, "key_eval/GT"),
+        os.path.join(sample_path, "tuning_eval/audio"),
+        os.path.join(sample_path, "tuning_eval/GT"),
     )
-    print("Average accuracy: ", avg_accuracy)
-    print("Average deviation (cents): ", avg_deviationInCent)
+    # print("Average accuracy: ", avg_accuracy)
+    print(
+        "Average absolute deviation for the tuning frequency estimation in Cent: ",
+        avg_deviationInCent,
+    )
