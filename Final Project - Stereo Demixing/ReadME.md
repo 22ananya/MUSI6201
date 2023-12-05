@@ -30,5 +30,20 @@ File 1
 
 3. FINAL_Run_HAAQI_Eval - This script will load the saved mixtures and reference mixtures, run HAAQI and save results
 
-4. 
+4. FINAL_Run_SI_SDR_Eval.ipynb - Same as 3, except here it does SI_SDR
+
+5. FINAL_Visualization_and_Listening.ipynb - This script just loads and plots spectrograms and audio at each stage of processing - a way to evaluate performance subjectively
+
+6. FINAL_Demixed_Stems_Listening.ipynb - This loads input mixtures, demixes with demucs or openunmix, and plays them back for inference
+
+Optional
+
+7. testing.ipynb - This is the script that was used to generate the at_mic_music for training
+
+8. start.ipynb - This was my initial attempt at creating my own source separation model, I abandoned it fairly early
+
+9. Retrain_Open_Unmix_Pytorch.ipynb - Fine tuning OpenUnmix took too long, so we didn't see it through
+
+
+* All the files above work on the validation set, if you change the root to "/content/drive/MyDrive/Cadenza_Challenge/cad_icassp_2024" instead of "/content/drive/MyDrive/Cadenza_Challenge/cad_icassp_2024/Validation", then you can run everything on the training set, but full tracks are slow to process. Some folders are also named differently if you choose to do that, you can just run some of the older colab scripts that are for the train set. I've not updated them since there fundamentally is no advantage to it, other than slower inference. 
 
