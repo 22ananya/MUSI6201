@@ -19,5 +19,16 @@ This version was suggested by the challenge creators, so leave that unchanged.
 
 # Files to run
 
+Only look at files that start with FINAL. Everything else is likely just older and duplicate. 
+
 Although all of the files are relevant, there are a few duplicates, so run the following and all of the project should make sense. The suggested order should make sense, but you don't have to follow it!
+
+File 1
+1. FINAL_Process_Tracks.ipynb - This script loads the at_mic_music (hrtf applied already), demixes it, reweights and downmixes the stems, applies hearing aid processing and saves audio to google drive as FLAC files. I load these FLAC files for analysis later on.
+
+2. FINAL_Process_Reference_Stems.ipynb - This file does the same as 1, except it imports the reference stems, so doesn't do any demixing. The output of this script are the files that are used for evaluation with HAAQI and SI-SDR
+
+3. FINAL_Run_HAAQI_Eval - This script will load the saved mixtures and reference mixtures, run HAAQI and save results
+
+4. 
 
