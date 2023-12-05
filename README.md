@@ -13,3 +13,6 @@ Also included is the PDF with plots - Assignment2.pdf
 # Assignment3 : A3
 
 # Assignment4: A4
+
+# Final Project
+Final Project has its own ReadMe - read that please if you're evaluating that.
