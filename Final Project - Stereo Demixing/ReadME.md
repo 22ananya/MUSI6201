@@ -47,3 +47,13 @@ Optional
 
 * All the files above work on the validation set, if you change the root to "/content/drive/MyDrive/Cadenza_Challenge/cad_icassp_2024" instead of "/content/drive/MyDrive/Cadenza_Challenge/cad_icassp_2024/Validation", then you can run everything on the training set, but full tracks are slow to process. Some folders are also named differently if you choose to do that, you can just run some of the older colab scripts that are for the train set. I've not updated them since there fundamentally is no advantage to it, other than slower inference. 
 
+
+# To just lisen to audio samples, on google drive, go to:
+Cadenza Challenge > cad icassp 2024 > Validation > Val_enhanced_demucs_100  :  For enhanced tracks, demixed using Demucsv4
+Cadenza Challenge > cad icassp 2024 > Validation > Val_enhanced_openunmix_100  :  For enhanced tracks, demixed using Openunmix
+Cadenza Challenge > cad icassp 2024 > Validation > Val_Ref_Tracks  :  For reference tracks, processed remixes from provided stems
+
+Cadenza Challenge > cad icassp 2024 > Validation > audio > at_mic_music > valid  :  For input mixtures and stems for validation set
+Cadenza Challenge > cad icassp 2024  > audio > at_mic_music > train  :  For input MUSDB18 HRTF training data set
+
+
